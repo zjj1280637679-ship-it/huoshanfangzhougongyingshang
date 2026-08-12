@@ -11,15 +11,30 @@ from astrbot.core.provider.register import (
     register_provider_adapter,
 )
 
-PLUGIN_MODULE_MARKER = "astrbot_plugin_volcengine_provider"
+# Keep this fork's provider ownership separate from the original
+# astrbot_plugin_volcengine_provider line.  The first marker matches installs
+# that use metadata.name; the second matches direct clones of this repository.
+PLUGIN_MODULE_MARKERS = (
+    "astrbot_plugin_volcengine_native_video_provider",
+    "huoshanfangzhougongyingshang",
+)
 
-ARK_PROVIDER_TYPE = "volcengine_ark_chat_completion"
-AGENT_PLAN_PROVIDER_TYPE = "volcengine_agent_plan_chat_completion"
-# Kept only to read any configuration saved by the short-lived 0.1.6 build.
-# From 0.1.7 onward, ``modalities`` is the single authoritative model-level
-# capability set, matching AstrBot's native image/audio/tool switches.
-ARK_VIDEO_INPUT_KEY = "volcengine_ark_video_input"
-AGENT_PLAN_VIDEO_INPUT_KEY = "volcengine_agent_plan_video_input"
+ARK_PROVIDER_TYPE = "volcengine_native_video_ark_chat_completion"
+AGENT_PLAN_PROVIDER_TYPE = "volcengine_native_video_agent_plan_chat_completion"
+# Kept only as a fallback when a configuration has no native ``modalities``
+# list.  Normal 0.1.12+ configurations use ``modalities`` as the single
+# authoritative model-level capability set.
+ARK_VIDEO_INPUT_KEY = "volcengine_native_video_ark_video_input"
+AGENT_PLAN_VIDEO_INPUT_KEY = "volcengine_native_video_agent_plan_video_input"
+
+_PROVIDER_DEFAULT_IDS = {
+    ARK_PROVIDER_TYPE: "volcengine-native-video-ark",
+    AGENT_PLAN_PROVIDER_TYPE: "volcengine-native-video-agent-plan",
+}
+_PROVIDER_DISPLAY_NAMES = {
+    ARK_PROVIDER_TYPE: "火山方舟（原生视频）普通 API",
+    AGENT_PLAN_PROVIDER_TYPE: "火山方舟（原生视频）Agent Plan API",
+}
 
 _SCHEMA_LEASE_COUNT = 0
 _SCHEMA_WRAPPER: Callable[..., dict[str, Any]] | None = None
@@ -139,19 +154,16 @@ def register_owned_provider(
     """Register once and replace only an older class owned by this plugin.
 
     AstrBot 4.26 has a process-global registry without plugin ownership or an
-    unregister hook.  A plugin reload must therefore remove its own previous
-    metadata before registering the new class.  A foreign collision fails
-    closed instead of silently hijacking another adapter.
+    unregister hook.  This fork uses its own Provider Type namespace so it does
+    not replace the original Volcengine provider plugin.  A reload may replace
+    only a class imported from this fork's own package/module path.
     """
 
     existing = provider_cls_map.get(provider_type_name)
     if existing is not None:
         existing_cls = getattr(existing, "cls_type", None)
         module = str(getattr(existing_cls, "__module__", ""))
-        owned = bool(
-            getattr(existing_cls, "_volcengine_provider_plugin_owned", False)
-            or PLUGIN_MODULE_MARKER in module
-        )
+        owned = any(marker in module for marker in PLUGIN_MODULE_MARKERS)
         if not owned:
             raise ValueError(
                 f"Provider type {provider_type_name!r} is already owned by "
@@ -159,6 +171,17 @@ def register_owned_provider(
             )
         provider_registry[:] = [item for item in provider_registry if item is not existing]
         provider_cls_map.pop(provider_type_name, None)
+
+    # providers.py intentionally keeps the proven 0.1.12 request logic intact.
+    # Rewrite only identity fields here so this parallel plugin gets independent
+    # default card IDs and unambiguous labels without touching request behavior.
+    default_config_tmpl = dict(default_config_tmpl)
+    if provider_type_name in _PROVIDER_DEFAULT_IDS:
+        default_config_tmpl["id"] = _PROVIDER_DEFAULT_IDS[provider_type_name]
+    provider_display_name = _PROVIDER_DISPLAY_NAMES.get(
+        provider_type_name,
+        provider_display_name,
+    )
 
     return register_provider_adapter(
         provider_type_name,
