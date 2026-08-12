@@ -1,14 +1,16 @@
-<h1 align="center">火山方舟双通道模型供应商</h1>
-<p align="center"><strong>别让你的 AI 在 QQ 里只会看字：让它真正听懂语音，也看懂视频。</strong></p>
+<h1 align="center">火山方舟供应商（原生视频理解）</h1>
+<p align="center"><strong>别让你的 AI 在 QQ 里只会看字：让它真正听懂语音，也通过原生模型能力看懂视频。</strong></p>
 
 [![Version](https://img.shields.io/badge/version-0.1.12-e85d3f)](CHANGELOG.md)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%3E%3D4.26.1-6b63ff)](https://github.com/AstrBotDevs/AstrBot)
 [![Platform](https://img.shields.io/badge/platform-aiocqhttp%20%7C%20webchat-2f855a)](https://docs.astrbot.app/dev/star/plugin-new.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+这是从已经验证成功的 `0.1.12` 火山方舟供应商实现中独立出来的平行迭代线。插件身份、Provider Type、默认供应商卡 ID 与仓库地址已经独立命名；已验证的音频归一化、视频 `video_url` 注入、模型元数据与双计费通道请求逻辑保持原样。
+
 装上这款插件，QQ 语音会在可靠转换后，连同完整聊天上下文交给你正在使用的火山方舟主模型；本轮发送或引用的视频，也能由同一个模型看懂并继续回应。你不需要另配 STT、转录模型，也不用再搭建一条互相失忆的旁路。
 
-插件同时为 AstrBot 补齐普通 API 与 Agent Plan 两张独立供应商卡：多模态能力由你按模型开启，密钥、端点与计费互不混线。让你的 AstrBot 不只是“接入火山方舟”，而是真正在 QQ 对话中获得听、看、理解与回应的能力。
+插件同时为 AstrBot 补齐普通 API 与 Agent Plan 两张独立供应商卡：多模态能力由你按模型开启，密钥、端点与计费互不混线。视频能力继续使用 AstrBot 原生模型卡的 `modalities` 集合，`video` 与图片、音频、工具能力位于同一层级，不另造第二套视频状态。
 
 交流与反馈：**QQ 群 916646029**
 
@@ -16,19 +18,32 @@
 
 - **QQ 语音真正交给主模型理解**：Silk、AMR 等 QQ 常见输入会先规范化成可靠 WAV，再随完整上下文进入同一个聊天模型；不是旁路转录，也不需要另配 STT。
 - **当前视频直接进入火山协议**：勾选“视频”后，本次发送或引用的视频会转换为官方 `video_url` 内容块，让主模型在同一轮对话里看见动态内容。
+- **原生模型能力开关**：视频与图片、音频、工具共同使用模型卡 `modalities`；`modalities` 是唯一能力真值。
 - **听、看、回答仍是一条主对话**：语音、视频、图片、文字和工具结果共享 AstrBot 组装的完整上下文，不会拆成互相失忆的多个模型流程。
-- **按模型开启多模态**：你可以在模型卡上分别勾选图片、音频、视频与工具能力，不必接受插件的猜测。
 - **两条不会混线的计费通道**：普通 API 与 Agent Plan 分别使用独立供应商类型、固定端点和独立密钥。
 - **完整的模型选择**：普通 API 在线读取当前密钥真正可见的模型；Agent Plan 提供带 `agentplan/` 前缀的套餐模型候选。
 - **失败时不装懂**：附件进入插件后若解析或验证失败，本次请求会明确停止，不会把没看见、没听见伪装成理解成功。
-- **随时可以移除**：全部实现都在本插件目录中，不依赖其他第三方插件，也没有驻留在 AstrBot 外部的裸脚本。
+
+## 独立插件身份
+
+| 身份 | 值 |
+| --- | --- |
+| 插件 ID | `astrbot_plugin_volcengine_native_video_provider` |
+| 显示名 | `火山方舟供应商（原生视频理解）` |
+| 普通 API Provider Type | `volcengine_native_video_ark_chat_completion` |
+| Agent Plan Provider Type | `volcengine_native_video_agent_plan_chat_completion` |
+| 普通 API 默认卡 ID | `volcengine-native-video-ark` |
+| Agent Plan 默认卡 ID | `volcengine-native-video-agent-plan` |
+| 仓库 | `zjj1280637679-ship-it/huoshanfangzhougongyingshang` |
+
+Provider Type 与默认卡 ID 不再沿用原仓库的命名，因此两条开发线不会因为注册同名 Provider Type 而直接覆盖彼此。
 
 ## 先认清两张供应商卡
 
 | 你看到的类型 | 固定端点 | 你应该填写的密钥 | 本地模型名 |
 | --- | --- | --- | --- |
-| `volcengine_ark_chat_completion` | `https://ark.cn-beijing.volces.com/api/v3` | 普通方舟推理 API Key | 官方模型 ID 或接入点 ID |
-| `volcengine_agent_plan_chat_completion` | `https://ark.cn-beijing.volces.com/api/plan/v3` | Agent Plan 专属 API Key | `agentplan/...` |
+| `volcengine_native_video_ark_chat_completion` | `https://ark.cn-beijing.volces.com/api/v3` | 普通方舟推理 API Key | 官方模型 ID 或接入点 ID |
+| `volcengine_native_video_agent_plan_chat_completion` | `https://ark.cn-beijing.volces.com/api/plan/v3` | Agent Plan 专属 API Key | `agentplan/...` |
 
 你在 AstrBot 中看到的 Agent Plan 模型会带本地前缀：
 
@@ -48,7 +63,7 @@ AstrBot：agentplan/doubao-seed-2.1-turbo
 1. 把解压后的插件目录放入 AstrBot 的 `data/plugins/`；不要把 ZIP 原样塞进插件目录。
 2. 完整关闭并重新启动 AstrBot。
 3. 打开 `模型提供商 → 对话 → 新增`。
-4. 确认列表里出现“火山方舟普通 API”和“火山方舟 Agent Plan API”。
+4. 确认列表里出现“火山方舟（原生视频）普通 API”和“火山方舟（原生视频）Agent Plan API”。
 
 插件最低支持 AstrBot `4.26.1`，不再人为设置未来版本上限；后续 AstrBot 新版本只要相关 Provider API 保持兼容即可继续使用。
 
@@ -56,7 +71,7 @@ AstrBot 4.26.x 的 Provider 注册表没有安全的热卸载钩子，所以安�
 
 ## 接通普通方舟 API
 
-1. 新增 `volcengine_ark_chat_completion`。
+1. 新增 `volcengine_native_video_ark_chat_completion`。
 2. 填写你的普通方舟推理 API Key。
 3. 获取模型列表，或手动填写官方模型 ID / 推理接入点 ID（`ep-...`）。
 4. 打开具体模型的编辑卡，按该模型实际能力勾选图片、音频、视频或工具。
@@ -66,7 +81,7 @@ AstrBot 4.26.x 的 Provider 注册表没有安全的热卸载钩子，所以安�
 
 ## 接通 Agent Plan
 
-1. 新增 `volcengine_agent_plan_chat_completion`。
+1. 新增 `volcengine_native_video_agent_plan_chat_completion`。
 2. 填写你的 **Agent Plan 专属 API Key**；不要填普通方舟或 Coding Plan Key。
 3. 选择一个带 `agentplan/` 的套餐模型。
 4. 如果你希望使用控制台托管路由，可以选择 `agentplan/ark-code-latest`；它代表可变路由，不是固定模型。
@@ -183,4 +198,4 @@ AstrBot 4.26.x 前端原本缺少“视频”标签。插件只在自身生命�
 - [火山方舟 Python SDK（Apache-2.0）](https://github.com/volcengine/volcengine-python-sdk)
 - [火山方舟 Ark CLI](https://github.com/volcengine/ark-cli)
 
-仓库地址：<https://github.com/zjj1280637679-ship-it/astrbot_plugin_volcengine_provider>
+仓库地址：<https://github.com/zjj1280637679-ship-it/huoshanfangzhougongyingshang>
