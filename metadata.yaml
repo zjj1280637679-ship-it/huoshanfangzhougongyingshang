@@ -4,7 +4,7 @@ desc: "火山方舟供应商（原生视频理解）。0.1.13 延续已验证的
 short_desc: "原生补齐视频理解，并修复 QQ Silk/AMR 语音格式误判；文字、图片、语音、视频进入同一个火山方舟主模型，普通 API 与 Agent Plan 双通道隔离。"
 version: "0.1.13"
 astrbot_version: ">=4.26.1"
-author: zjj1280637679-ship-it
+author: "羊膜大人"
 repo: "https://github.com/zjj1280637679-ship-it/huoshanfangzhougongyingshang"
 category: 三方集成
 tags:
