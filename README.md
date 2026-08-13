@@ -1,7 +1,7 @@
 <h1 align="center">火山方舟供应商（原生视频理解）</h1>
 <p align="center"><strong>让 AstrBot 的火山方舟主模型直接理解文字、图片、QQ 语音与本轮视频，不再另接一条转述旁路。</strong></p>
 
-[![Version](https://img.shields.io/badge/version-0.1.12-e85d3f)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.13-e85d3f)](CHANGELOG.md)
 [![AstrBot](https://img.shields.io/badge/AstrBot-%3E%3D4.26.1-6b63ff)](https://github.com/AstrBotDevs/AstrBot)
 [![Platform](https://img.shields.io/badge/platform-aiocqhttp%20%7C%20webchat-2f855a)](https://docs.astrbot.app/dev/star/plugin-new.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
