@@ -1,0 +1,90 @@
+name: AstrBot Install Contract
+
+on:
+  push:
+    branches:
+      - test/astrbot-install-contract
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        astrbot_ref: [v4.27.3]
+    steps:
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - name: Clone AstrBot
+        run: git clone --depth 1 --branch '${{ matrix.astrbot_ref }}' https://github.com/AstrBotDevs/AstrBot.git AstrBot
+      - name: Install AstrBot runtime
+        run: uv sync --directory AstrBot
+      - name: Initialize AstrBot
+        shell: bash
+        run: |
+          set -euo pipefail
+          touch AstrBot/.astrbot
+          printf '\n' | uv run --directory AstrBot astrbot init
+      - name: Install plugin through AstrBot native updater
+        shell: bash
+        env:
+          SOURCE_BRANCH: test/astrbot-install-contract
+        run: |
+          set -euo pipefail
+          uv run --directory AstrBot python - <<'PY'
+          import asyncio
+          import os
+          from pathlib import Path
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          branch = os.environ['SOURCE_BRANCH']
+          repo_url = f'https://github.com/{repo}/tree/{branch}'
+
+          try:
+              from astrbot.core.star.updater import _PluginUpdater as RuntimeUpdater
+          except ModuleNotFoundError:
+              from astrbot.core.star.updator import PluginUpdator as RuntimeUpdater
+
+          async def main():
+              updater = RuntimeUpdater()
+              path = await updater.install(repo_url)
+              print(f'NATIVE_INSTALL_PATH={path}')
+
+          asyncio.run(main())
+
+          plugin_root = Path('data/plugins')
+          matches = []
+          for metadata in plugin_root.glob('*/metadata.yaml'):
+              text = metadata.read_text('utf-8')
+              if 'astrbot_plugin_volcengine_native_video_provider' in text:
+                  matches.append(metadata.parent)
+          if len(matches) != 1:
+              raise SystemExit(f'expected exactly one installed plugin, got {matches}')
+          root = matches[0]
+          metadata = root / 'metadata.yaml'
+          assert metadata.is_file(), root
+          print(f'INSTALLED_ROOT={root}')
+          print(metadata.read_text('utf-8'))
+          PY
+      - name: Start AstrBot and verify plugin loads
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup uv run --directory AstrBot astrbot run --port 6185 >astrbot-install.log 2>&1 &
+          pid=$!
+          sleep 15
+          cat astrbot-install.log
+          if ! kill -0 "$pid" 2>/dev/null; then
+            exit 1
+          fi
+          if grep -Eqi 'metadata\.ya?ml.*not found|Traceback|ERROR.*plugin' astrbot-install.log; then
+            exit 1
+          fi
+          kill "$pid" 2>/dev/null || true
