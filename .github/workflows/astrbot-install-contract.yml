@@ -88,3 +88,34 @@ jobs:
             exit 1
           fi
           kill "$pid" 2>/dev/null || true
+      - name: Prove metadata name is not the GitHub repository name
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --directory AstrBot python - <<'PY'
+          import asyncio
+
+          wrong_repo_url = (
+              'https://github.com/zjj1280637679-ship-it/'
+              'astrbot_plugin_volcengine_native_video_provider'
+          )
+
+          try:
+              from astrbot.core.star.updater import _PluginUpdater as RuntimeUpdater
+          except ModuleNotFoundError:
+              from astrbot.core.star.updator import PluginUpdator as RuntimeUpdater
+
+          async def main():
+              updater = RuntimeUpdater()
+              try:
+                  await updater.install(wrong_repo_url)
+              except Exception as exc:
+                  print(
+                      'EXPECTED_WRONG_REPOSITORY_FAILURE='
+                      f'{type(exc).__name__}: {exc}'
+                  )
+                  return
+              raise SystemExit('package-name-derived repository unexpectedly installed')
+
+          asyncio.run(main())
+          PY
